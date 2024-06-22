@@ -35,7 +35,14 @@ func setupRouter() *gin.Engine {
 		c.HTML(http.StatusOK, "login.tmpl", gin.H{})
 	})
 	r.POST("/login", func(c *gin.Context) {
-		c.String(http.StatusOK, "authorized??")
+		formUsername := c.PostForm("username")
+		formPassword := c.PostForm("password")
+		password, ok := userDB[formUsername]
+		if ok && password == formPassword {
+			c.String(http.StatusOK, "authorized")
+		} else {
+			c.String(http.StatusForbidden, "not authorized")
+		}
 	})
 
 	return r
