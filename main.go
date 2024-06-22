@@ -18,6 +18,9 @@ func setupRouter() *gin.Engine {
 	r.GET("/signup", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "signup.tmpl", gin.H{})
 	})
+	r.POST("/signup", func(c *gin.Context) {
+		c.String(http.StatusOK, "DO SOMETHING")
+	})
 
 	return r
 }
