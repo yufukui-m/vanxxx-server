@@ -1,7 +1,10 @@
 services:
-  web:
-    build: .
+  app:
+    image: cimg/go:1.22
+    volumes:
+      - type: bind
+        source: ./
+        target: /home/circleci/project
+    command: go run main.go
     ports:
-      - "8000:5000"
-  redis:
-    image: "redis:alpine"
+      - "8080:8080"
