@@ -46,6 +46,10 @@ func setupRouter() *gin.Engine {
 		}
 	})
 
+	r.GET("/logout", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "logout.tmpl", gin.H{})
+	})
+
 	return r
 }
 
