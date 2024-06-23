@@ -39,6 +39,7 @@ func setupRouter() *gin.Engine {
 		formPassword := c.PostForm("password")
 		password, ok := userDB[formUsername]
 		if ok && password == formPassword {
+			c.SetCookie("gin_cookie", "test", 3600, "/", "localhost", false, true)
 			c.String(http.StatusOK, "authorized")
 		} else {
 			c.String(http.StatusForbidden, "not authorized")
