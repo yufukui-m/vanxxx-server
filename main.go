@@ -47,7 +47,16 @@ func setupRouter() *gin.Engine {
 	})
 
 	r.GET("/logout", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "logout.tmpl", gin.H{})
+		username, err := c.Cookie("username")
+		if err != nil {
+			c.HTML(http.StatusForbidden, "logout.tmpl", gin.H{
+				"username": "you are not logged in",
+			})
+		} else {
+			c.HTML(http.StatusOK, "logout.tmpl", gin.H{
+				"username": username,
+			})
+		}
 	})
 
 	return r
