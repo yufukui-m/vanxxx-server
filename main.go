@@ -64,10 +64,6 @@ func setupRouter() *gin.Engine {
 		c.String(http.StatusOK, "logged out")
 	})
 
-	r.GET("/foo", func(c *gin.Context) {
-		c.String(http.StatusOK, "new page")
-	})
-
 	return r
 }
 
