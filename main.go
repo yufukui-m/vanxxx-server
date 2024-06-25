@@ -47,7 +47,7 @@ func setupRouter() *gin.Engine {
 		formPassword := c.PostForm("password")
 		password, ok := userDB[formUsername]
 		if ok && password == formPassword {
-			c.SetCookie("username", formUsername, 3600, "/", "localhost", false, true)
+			c.SetCookie("username", formUsername, 3600, "/", "" /* hostname */, false, true)
 			c.String(http.StatusOK, "authorized")
 		} else {
 			c.String(http.StatusForbidden, "not authorized")
@@ -64,7 +64,7 @@ func setupRouter() *gin.Engine {
 	})
 	r.POST("/logout", func(c *gin.Context) {
 		// note for Max-Age: https://blog.risouf.net/entry/2023-02-10-2023-02-10-golang-maxage-caution.html
-		c.SetCookie("username", "", -1, "/", "localhost", false, true)
+		c.SetCookie("username", "", -1, "/", "" /* hostname */, false, true)
 		c.String(http.StatusOK, "logged out")
 	})
 
