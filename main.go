@@ -21,6 +21,14 @@ func setupRouter() *gin.Engine {
 		c.String(http.StatusOK, "pong")
 	})
 
+	r.GET("/", func(c *gin.Context) {
+		username, _ := c.Cookie("username")
+
+		c.HTML(http.StatusOK, "index.tmpl", gin.H{
+			"username": username,
+		})
+	})
+
 	r.GET("/signup", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "signup.tmpl", gin.H{})
 	})

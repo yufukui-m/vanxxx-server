@@ -1,0 +1,12 @@
+<html>
+  <body>
+    <h1>index</h1>
+    <div>
+      {{if .username}}
+      you are logged in as {{.username}} or <a href="/logout">logout</a>
+      {{else}}
+      <a href="/login">login</a> or <a href="/signup">signup</a>
+      {{end}}
+    </div>
+  </body>
+</html>
