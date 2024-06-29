@@ -13,12 +13,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	USER_FILE = "./data/users.json"
+)
+
 var userDB map[string]string
 
 func initUserDB() error {
 	var err error
 	userDB = make(map[string]string)
-	bytes, err := os.ReadFile("./data/users.json")
+	bytes, err := os.ReadFile(USER_FILE)
 	if os.IsNotExist(err) {
 		return nil
 	}
@@ -37,7 +41,7 @@ func saveUserDB() error {
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile("./data/users.json", jsonBody, 0666)
+	err = os.WriteFile(USER_FILE, jsonBody, 0666)
 	if err != nil {
 		return err
 	}
