@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -16,6 +17,19 @@ var userDB map[string]string
 
 func initUserDB() {
 	userDB = make(map[string]string)
+}
+
+func saveUserDB() error {
+	var err error
+	jsonBody, err := json.Marshal(userDB)
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile("./data/users.json", jsonBody, 0666)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func setupRouter() *gin.Engine {
@@ -110,6 +124,11 @@ func main() {
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatal("Server forced to shutdown: ", err)
+	}
+
+	log.Println("save user.json")
+	if err := saveUserDB(); err != nil {
+		log.Fatal("failed in saveUserDB: ", err)
 	}
 
 	log.Println("Server exiting")
