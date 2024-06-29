@@ -15,8 +15,17 @@ import (
 
 var userDB map[string]string
 
-func initUserDB() {
+func initUserDB() error {
+	var err error
 	userDB = make(map[string]string)
+	bytes, err := os.ReadFile("./data/users.json")
+	if err != nil {
+		return err
+	}
+	if err = json.Unmarshal(bytes, &userDB); err != nil {
+		return err
+	}
+	return nil
 }
 
 func saveUserDB() error {
@@ -92,7 +101,10 @@ func setupRouter() *gin.Engine {
 }
 
 func main() {
-	initUserDB()
+	if err := initUserDB(); err != nil {
+		log.Fatal("failed to load user.json: ", err)
+	}
+
 	r := setupRouter()
 
 	srv := &http.Server{
