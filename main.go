@@ -19,6 +19,9 @@ func initUserDB() error {
 	var err error
 	userDB = make(map[string]string)
 	bytes, err := os.ReadFile("./data/users.json")
+	if os.IsNotExist(err) {
+		return nil
+	}
 	if err != nil {
 		return err
 	}
