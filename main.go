@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-crypt/crypt/algorithm"
+	"github.com/go-crypt/crypt/algorithm/argon2"
 )
 
 const (
@@ -48,6 +50,25 @@ func saveUserDB() error {
 	return nil
 }
 
+func generateHashedPassword(password string) (string, error) {
+	var (
+		hasher *argon2.Hasher
+		err    error
+		digest algorithm.Digest
+	)
+
+	if hasher, err = argon2.New(
+		argon2.WithProfileRFC9106LowMemory(),
+	); err != nil {
+		return "", err
+	}
+	if digest, err = hasher.Hash(password); err != nil {
+		return "", err
+	}
+
+	return digest.Encode(), nil
+}
+
 func setupRouter() *gin.Engine {
 	r := gin.Default()
 	r.LoadHTMLGlob("templates/*")
@@ -69,9 +90,15 @@ func setupRouter() *gin.Engine {
 		c.HTML(http.StatusOK, "signup.tmpl", gin.H{})
 	})
 	r.POST("/signup", func(c *gin.Context) {
+		var err error
 		username := c.PostForm("username")
 		password := c.PostForm("password")
-		userDB[username] = password
+		hashedPassword, err := generateHashedPassword(password)
+		if err != nil {
+			c.String(http.StatusInternalServerError, "failed on generateHashedPassword")
+			return
+		}
+		userDB[username] = hashedPassword
 		c.String(http.StatusOK, username)
 	})
 
