@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-crypt/crypt"
 	"github.com/go-crypt/crypt/algorithm"
 	"github.com/go-crypt/crypt/algorithm/argon2"
 )
@@ -69,6 +70,10 @@ func generateHashedPassword(password string) (string, error) {
 	return digest.Encode(), nil
 }
 
+func checkHashedPassword(password string, hashedPassword string) (bool, error) {
+	return crypt.CheckPassword(password, hashedPassword)
+}
+
 func setupRouter() *gin.Engine {
 	r := gin.Default()
 	r.LoadHTMLGlob("templates/*")
@@ -108,13 +113,24 @@ func setupRouter() *gin.Engine {
 	r.POST("/login", func(c *gin.Context) {
 		formUsername := c.PostForm("username")
 		formPassword := c.PostForm("password")
-		password, ok := userDB[formUsername]
-		if ok && password == formPassword {
-			c.SetCookie("username", formUsername, 3600, "/", "" /* hostname */, false, true)
-			c.String(http.StatusOK, "authorized")
-		} else {
+		hashedPassword, ok := userDB[formUsername]
+		if !ok {
 			c.String(http.StatusForbidden, "not authorized")
+			return
 		}
+		var err error
+		checkResult, err := checkHashedPassword(formPassword, hashedPassword)
+		if err != nil {
+			c.String(http.StatusInternalServerError, "failed on checkHashedPassword")
+			return
+		}
+		if !checkResult {
+			c.String(http.StatusForbidden, "not authorized")
+			return
+		}
+
+		c.SetCookie("username", formUsername, 3600, "/", "" /* hostname */, false, true)
+		c.String(http.StatusOK, "authorized")
 	})
 
 	r.GET("/logout", func(c *gin.Context) {
