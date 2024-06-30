@@ -13,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-crypt/crypt"
 	"github.com/go-crypt/crypt/algorithm"
-	"github.com/go-crypt/crypt/algorithm/shacrypt"
+	"github.com/go-crypt/crypt/algorithm/argon2"
 )
 
 const (
@@ -53,12 +53,14 @@ func saveUserDB() error {
 
 func generateHashedPassword(password string) (string, error) {
 	var (
-		hasher *shacrypt.Hasher
+		hasher *argon2.Hasher
 		err    error
 		digest algorithm.Digest
 	)
 
-	if hasher, err = shacrypt.NewSHA512(); err != nil {
+	if hasher, err = argon2.New(
+		argon2.WithProfileRFC9106LowMemory(),
+	); err != nil {
 		return "", err
 	}
 	if digest, err = hasher.Hash(password); err != nil {
