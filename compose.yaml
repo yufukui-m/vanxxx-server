@@ -5,6 +5,6 @@ services:
       - type: bind
         source: ./
         target: /home/circleci/project
-    command: /bin/sh -c "go install github.com/air-verse/air@latest && air --build.cmd 'go build -o ./bin/server' --build.bin ./bin/server --build.send_interrupt true"
+    command: /bin/sh -c "go install github.com/air-verse/air@latest && air --build.cmd 'go build -o ./bin/server' --build.bin ./bin/server --build.send_interrupt true --build.kill_delay 1"
     ports:
       - "8080:8080"
