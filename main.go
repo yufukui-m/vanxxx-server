@@ -18,7 +18,8 @@ import (
 )
 
 const (
-	USER_FILE = "./data/users.json"
+	USER_FILE           = "./data/users.json"
+	SESSION_COOKIE_NAME = "session"
 )
 
 // Hash keys should be at least 32 bytes long
@@ -32,11 +33,11 @@ var s = securecookie.New(hashKey, nil)
 func getSession(c *gin.Context) (string, error) {
 	var err error
 	var sessionCookie string
-	if sessionCookie, err = c.Cookie("cookie-name"); err != nil {
+	if sessionCookie, err = c.Cookie(SESSION_COOKIE_NAME); err != nil {
 		return "", err
 	}
 	var username string
-	if err = s.Decode("cookie-name", sessionCookie, &username); err != nil {
+	if err = s.Decode(SESSION_COOKIE_NAME, sessionCookie, &username); err != nil {
 		return "", err
 	}
 
@@ -44,18 +45,18 @@ func getSession(c *gin.Context) (string, error) {
 }
 
 func setSession(c *gin.Context, username string) error {
-	encoded, err := s.Encode("cookie-name", username)
+	encoded, err := s.Encode(SESSION_COOKIE_NAME, username)
 	if err != nil {
 		return err
 	}
 
-	c.SetCookie("cookie-name", encoded, 3600, "/", "" /* hostname */, false, true)
+	c.SetCookie(SESSION_COOKIE_NAME, encoded, 3600, "/", "" /* hostname */, false, true)
 	return nil
 }
 
 func expireSession(c *gin.Context) {
 	// note for Max-Age: https://blog.risouf.net/entry/2023-02-10-2023-02-10-golang-maxage-caution.html
-	c.SetCookie("cookie-name", "", -1, "/", "" /* hostname */, false, true)
+	c.SetCookie(SESSION_COOKIE_NAME, "", -1, "/", "" /* hostname */, false, true)
 }
 
 var userDB map[string]string
