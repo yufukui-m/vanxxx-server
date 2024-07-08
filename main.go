@@ -26,9 +26,8 @@ var hashKey = []byte("very-secret")
 
 // Block keys should be 16 bytes (AES-128) or 32 bytes (AES-256) long.
 // Shorter keys may weaken the encryption used.
-var blockKey = []byte("a-lot-secret")
-
-var s = securecookie.New(hashKey, blockKey)
+// var blockKey = []byte("very-secret")
+var s = securecookie.New(hashKey, nil)
 
 var userDB map[string]string
 
