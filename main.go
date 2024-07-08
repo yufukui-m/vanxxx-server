@@ -29,6 +29,16 @@ var hashKey = []byte("very-secret")
 // var blockKey = []byte("very-secret")
 var s = securecookie.New(hashKey, nil)
 
+func setSession(c *gin.Context, username string) error {
+	encoded, err := s.Encode("cookie-name", username)
+	if err != nil {
+		return err
+	}
+
+	c.SetCookie("cookie-name", encoded, 3600, "/", "" /* hostname */, false, true)
+	return nil
+}
+
 var userDB map[string]string
 
 func initUserDB() error {
@@ -140,13 +150,11 @@ func setupRouter() *gin.Engine {
 			return
 		}
 
-		var encoded string
-		if encoded, err = s.Encode("cookie-name", formUsername); err != nil {
+		if err = setSession(c, formUsername); err != nil {
 			c.String(http.StatusInternalServerError, "failed on encoding a cookie")
 			return
 		}
 
-		c.SetCookie("cookie-name", encoded, 3600, "/", "" /* hostname */, false, true)
 		c.String(http.StatusOK, "authorized")
 	})
 
