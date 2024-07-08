@@ -93,7 +93,9 @@ func setupRouter() *gin.Engine {
 	})
 
 	r.GET("/", func(c *gin.Context) {
-		username, _ := c.Cookie("username")
+		sessionCookie, _ := c.Cookie("cookie-name")
+		var username string
+		_ = s.Decode("cookie-name", sessionCookie, &username)
 
 		c.HTML(http.StatusOK, "index.tmpl", gin.H{
 			"username": username,
@@ -149,7 +151,9 @@ func setupRouter() *gin.Engine {
 	})
 
 	r.GET("/logout", func(c *gin.Context) {
-		_, err := c.Cookie("username")
+		sessionCookie, _ := c.Cookie("cookie-name")
+		var username string
+		err := s.Decode("cookie-name", sessionCookie, &username)
 
 		if err != nil {
 			c.String(http.StatusForbidden, "not logged in")
