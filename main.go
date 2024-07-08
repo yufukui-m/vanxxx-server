@@ -163,7 +163,7 @@ func setupRouter() *gin.Engine {
 	})
 	r.POST("/logout", func(c *gin.Context) {
 		// note for Max-Age: https://blog.risouf.net/entry/2023-02-10-2023-02-10-golang-maxage-caution.html
-		c.SetCookie("username", "", -1, "/", "" /* hostname */, false, true)
+		c.SetCookie("cookie-name", "", -1, "/", "" /* hostname */, false, true)
 		c.String(http.StatusOK, "logged out")
 	})
 
