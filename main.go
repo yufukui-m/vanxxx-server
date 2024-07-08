@@ -14,11 +14,21 @@ import (
 	"github.com/go-crypt/crypt"
 	"github.com/go-crypt/crypt/algorithm"
 	"github.com/go-crypt/crypt/algorithm/argon2"
+	"github.com/gorilla/securecookie"
 )
 
 const (
 	USER_FILE = "./data/users.json"
 )
+
+// Hash keys should be at least 32 bytes long
+var hashKey = []byte("very-secret")
+
+// Block keys should be 16 bytes (AES-128) or 32 bytes (AES-256) long.
+// Shorter keys may weaken the encryption used.
+var blockKey = []byte("a-lot-secret")
+
+var s = securecookie.New(hashKey, blockKey)
 
 var userDB map[string]string
 
@@ -129,12 +139,19 @@ func setupRouter() *gin.Engine {
 			return
 		}
 
-		c.SetCookie("username", formUsername, 3600, "/", "" /* hostname */, false, true)
+		var encoded string
+		if encoded, err = s.Encode("cookie-name", formUsername); err != nil {
+			c.String(http.StatusInternalServerError, "failed on encoding a cookie")
+			return
+		}
+
+		c.SetCookie("cookie-name", encoded, 3600, "/", "" /* hostname */, false, true)
 		c.String(http.StatusOK, "authorized")
 	})
 
 	r.GET("/logout", func(c *gin.Context) {
 		_, err := c.Cookie("username")
+
 		if err != nil {
 			c.String(http.StatusForbidden, "not logged in")
 		} else {
