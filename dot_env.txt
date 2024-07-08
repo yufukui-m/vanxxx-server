@@ -1,0 +1,2 @@
+# example of .env
+SESSION_HASH_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

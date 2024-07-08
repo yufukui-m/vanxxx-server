@@ -23,7 +23,7 @@ const (
 )
 
 // Hash keys should be at least 32 bytes long
-var hashKey = []byte("very-secret")
+var hashKey = []byte(os.Getenv("SESSION_HASH_KEY"))
 
 // Block keys should be 16 bytes (AES-128) or 32 bytes (AES-256) long.
 // Shorter keys may weaken the encryption used.
