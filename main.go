@@ -29,6 +29,20 @@ var hashKey = []byte("very-secret")
 // var blockKey = []byte("very-secret")
 var s = securecookie.New(hashKey, nil)
 
+func getSession(c *gin.Context) (string, error) {
+	var err error
+	var sessionCookie string
+	if sessionCookie, err = c.Cookie("cookie-name"); err != nil {
+		return "", err
+	}
+	var username string
+	if err = s.Decode("cookie-name", sessionCookie, &username); err != nil {
+		return "", err
+	}
+
+	return username, nil
+}
+
 func setSession(c *gin.Context, username string) error {
 	encoded, err := s.Encode("cookie-name", username)
 	if err != nil {
@@ -103,9 +117,7 @@ func setupRouter() *gin.Engine {
 	})
 
 	r.GET("/", func(c *gin.Context) {
-		sessionCookie, _ := c.Cookie("cookie-name")
-		var username string
-		_ = s.Decode("cookie-name", sessionCookie, &username)
+		username, _ := getSession(c)
 
 		c.HTML(http.StatusOK, "index.tmpl", gin.H{
 			"username": username,
@@ -159,9 +171,7 @@ func setupRouter() *gin.Engine {
 	})
 
 	r.GET("/logout", func(c *gin.Context) {
-		sessionCookie, _ := c.Cookie("cookie-name")
-		var username string
-		err := s.Decode("cookie-name", sessionCookie, &username)
+		_, err := getSession(c)
 
 		if err != nil {
 			c.String(http.StatusForbidden, "not logged in")
