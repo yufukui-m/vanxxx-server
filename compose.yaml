@@ -3,6 +3,7 @@ services:
     image: cimg/go:1.22
     environment:
       - SESSION_HASH_KEY
+      - SESSION_BLOCK_KEY
     volumes:
       - type: bind
         source: ./

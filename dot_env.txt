@@ -1,2 +1,3 @@
 # example of .env
 SESSION_HASH_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+SESSION_BLOCK_KEY="AAAAAAAAAAAAAAAAAAAAAA=="
