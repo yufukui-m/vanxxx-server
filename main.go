@@ -25,10 +25,7 @@ const (
 // Hash keys should be at least 32 bytes long
 var hashKey = []byte(os.Getenv("SESSION_HASH_KEY"))
 
-// Block keys should be 16 bytes (AES-128) or 32 bytes (AES-256) long.
-// Shorter keys may weaken the encryption used.
-// var blockKey = []byte("very-secret")
-var s = securecookie.New(hashKey, nil)
+var s = securecookie.New(hashKey, nil /* block key, the key should be 16, 24, or 32 bytes of random bits. set nil if encryption is not required */)
 
 func getSession(c *gin.Context) (string, error) {
 	var err error
