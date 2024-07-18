@@ -200,9 +200,6 @@ func setupRouter() *gin.Engine {
 
 	r.MaxMultipartMemory = 8 << 20 // 8 MiB
 	r.POST("/upload", func(c *gin.Context) {
-		name := c.PostForm("name")
-		email := c.PostForm("email")
-
 		// Source
 		file, err := c.FormFile("file")
 		if err != nil {
@@ -216,7 +213,7 @@ func setupRouter() *gin.Engine {
 			return
 		}
 
-		c.String(http.StatusOK, "File %s uploaded successfully with fields name=%s and email=%s.", file.Filename, name, email)
+		c.String(http.StatusOK, "File %s uploaded successfully.", file.Filename)
 	})
 
 	return r
