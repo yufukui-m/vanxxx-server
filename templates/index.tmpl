@@ -8,5 +8,11 @@
       <a href="/login">login</a> or <a href="/signup">signup</a>
       {{end}}
     </div>
+    {{if .username}}
+    <form action="/upload" method="post" enctype="multipart/form-data" accept="image/png, image/jpeg">
+      Files: <input type="file" name="file"><br><br>
+      <input type="submit" value="Submit">
+    </form>
+    {{end}}
   </body>
 </html>
