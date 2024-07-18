@@ -23,18 +23,18 @@ const (
 	SESSION_COOKIE_NAME = "session"
 )
 
-// Hash keys should be at least 32 bytes long
-var hashKey = []byte(os.Getenv("SESSION_HASH_KEY"))
+var s *securecookie.SecureCookie
 
-var s = securecookie.New(hashKey, initBlockKey())
-
-func initBlockKey() []byte {
+func initSecureCookie() {
+	// Hash keys should be at least 32 bytes long
+	hashKey := []byte(os.Getenv("SESSION_HASH_KEY"))
 	//  block key, the key should be 16, 24, or 32 bytes of random bits. set nil if encryption is not require
-	key, err := base64.StdEncoding.DecodeString(os.Getenv("SESSION_BLOCK_KEY"))
+	blockKey, err := base64.StdEncoding.DecodeString(os.Getenv("SESSION_BLOCK_KEY"))
 	if err != nil {
 		panic(err)
 	}
-	return key
+
+	s = securecookie.New(hashKey, blockKey)
 }
 
 func getSession(c *gin.Context) (string, error) {
@@ -201,6 +201,7 @@ func setupRouter() *gin.Engine {
 }
 
 func main() {
+	initSecureCookie()
 	if err := initUserDB(); err != nil {
 		log.Fatal("failed to load user.json: ", err)
 	}
