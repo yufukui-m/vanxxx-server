@@ -213,7 +213,7 @@ func setupRouter() *gin.Engine {
 			return
 		}
 
-		filename := filepath.Base(file.Filename)
+		filename := "data/uploaded/" + username + "/" + filepath.Base(file.Filename)
 		if err := c.SaveUploadedFile(file, filename); err != nil {
 			c.String(http.StatusBadRequest, "upload file err: %s", err.Error())
 			return
