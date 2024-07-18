@@ -200,6 +200,12 @@ func setupRouter() *gin.Engine {
 
 	r.MaxMultipartMemory = 8 << 20 // 8 MiB
 	r.POST("/upload", func(c *gin.Context) {
+		username, _ := getSession(c)
+		if username == "" {
+			c.String(http.StatusForbidden, "unauthorized")
+			return
+		}
+
 		// Source
 		file, err := c.FormFile("file")
 		if err != nil {
