@@ -222,10 +222,6 @@ func setupRouter() *gin.Engine {
 		c.String(http.StatusOK, "File %s uploaded successfully.", file.Filename)
 	})
 
-	r.GET("/fakeimage.png", func(c *gin.Context) {
-		c.String(http.StatusOK, "this is a text, not an image")
-	})
-
 	return r
 }
 
