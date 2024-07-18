@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -220,6 +221,28 @@ func setupRouter() *gin.Engine {
 		}
 
 		c.String(http.StatusOK, "File %s uploaded successfully.", file.Filename)
+	})
+
+	r.GET("/list", func(c *gin.Context) {
+		username, _ := getSession(c)
+		if username == "" {
+			c.String(http.StatusForbidden, "unauthorized")
+			return
+		}
+
+		entries, err := os.ReadDir("data/uploaded/" + username)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var files = []string{}
+		for _, e := range entries {
+			if e.Type().IsRegular() {
+				files = append(files, e.Name())
+			}
+		}
+
+		c.String(http.StatusOK, strings.Join(files, "\n"))
 	})
 
 	return r
