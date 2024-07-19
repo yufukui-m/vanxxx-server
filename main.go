@@ -143,6 +143,7 @@ func setupRouter() *gin.Engine {
 		c.HTML(http.StatusOK, "signup.tmpl", gin.H{})
 	})
 	r.POST("/signup", func(c *gin.Context) {
+		// FIXME: VULNERABLE: check if the username is already used
 		var err error
 		username := c.PostForm("username")
 		password := c.PostForm("password")
