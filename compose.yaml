@@ -20,3 +20,5 @@ services:
       - type: bind
         source: ./docker-entrypoint-initdb.d
         target: /docker-entrypoint-initdb.d
+    expose:
+      - "3306:3306"
