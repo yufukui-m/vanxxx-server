@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"github.com/go-crypt/crypt/algorithm"
 	"github.com/go-crypt/crypt/algorithm/argon2"
 	"github.com/gorilla/securecookie"
+	"github.com/oklog/ulid/v2"
 )
 
 const (
@@ -45,16 +47,16 @@ func getSession(c *gin.Context) (string, error) {
 	if sessionCookie, err = c.Cookie(SESSION_COOKIE_NAME); err != nil {
 		return "", err
 	}
-	var username string
-	if err = s.Decode(SESSION_COOKIE_NAME, sessionCookie, &username); err != nil {
+	var userId string
+	if err = s.Decode(SESSION_COOKIE_NAME, sessionCookie, &userId); err != nil {
 		return "", err
 	}
 
-	return username, nil
+	return userId, nil
 }
 
-func setSession(c *gin.Context, username string) error {
-	encoded, err := s.Encode(SESSION_COOKIE_NAME, username)
+func setSession(c *gin.Context, userId string) error {
+	encoded, err := s.Encode(SESSION_COOKIE_NAME, userId)
 	if err != nil {
 		return err
 	}
@@ -68,11 +70,26 @@ func expireSession(c *gin.Context) {
 	c.SetCookie(SESSION_COOKIE_NAME, "", -1, "/", "" /* hostname */, false, true)
 }
 
-var userDB map[string]string
+type UserAttr struct {
+	UserId         string
+	Nickname       string
+	HashedPassword string
+}
+
+var userDB = []UserAttr{}
+
+func getUserAttrFromNickname(nickname string) (UserAttr, error) {
+	for _, v := range userDB {
+		if v.Nickname == nickname {
+			return v, nil
+		}
+	}
+	return UserAttr{}, errors.New("not found")
+}
 
 func initUserDB() error {
 	var err error
-	userDB = make(map[string]string)
+	userDB = make([]UserAttr, 0)
 	bytes, err := os.ReadFile(USER_FILE)
 	if os.IsNotExist(err) {
 		return nil
@@ -132,10 +149,10 @@ func setupRouter() *gin.Engine {
 	})
 
 	r.GET("/", func(c *gin.Context) {
-		username, _ := getSession(c)
+		userId, _ := getSession(c)
 
 		c.HTML(http.StatusOK, "index.tmpl", gin.H{
-			"username": username,
+			"username": userId,
 		})
 	})
 
@@ -144,13 +161,13 @@ func setupRouter() *gin.Engine {
 	})
 	r.POST("/signup", func(c *gin.Context) {
 		var err error
-		username := c.PostForm("username")
+		nickname := c.PostForm("username")
 		password := c.PostForm("password")
 
-		_, exists := userDB[username]
-		if exists {
+		// nickname から userAttr を引いてくる
+		_, err = getUserAttrFromNickname(nickname)
+		if err == nil {
 			c.String(http.StatusForbidden, "user already exists")
-			return
 		}
 
 		hashedPassword, err := generateHashedPassword(password)
@@ -158,8 +175,16 @@ func setupRouter() *gin.Engine {
 			c.String(http.StatusInternalServerError, "failed on generateHashedPassword")
 			return
 		}
-		userDB[username] = hashedPassword
-		c.String(http.StatusOK, username)
+
+		// signup の時にユーザid を生成
+		userId := "u-" + ulid.Make().String()
+
+		userDB = append(userDB, UserAttr{
+			userId,
+			nickname,
+			hashedPassword,
+		})
+		c.String(http.StatusOK, nickname)
 	})
 
 	r.GET("/login", func(c *gin.Context) {
@@ -168,13 +193,15 @@ func setupRouter() *gin.Engine {
 	r.POST("/login", func(c *gin.Context) {
 		formUsername := c.PostForm("username")
 		formPassword := c.PostForm("password")
-		hashedPassword, ok := userDB[formUsername]
-		if !ok {
-			c.String(http.StatusForbidden, "not authorized")
-			return
-		}
+
 		var err error
-		checkResult, err := checkHashedPassword(formPassword, hashedPassword)
+		userAttr, err := getUserAttrFromNickname(formUsername)
+		if err != nil {
+			// ユーザがいない
+			c.String(http.StatusForbidden, "not authorized")
+		}
+
+		checkResult, err := checkHashedPassword(formPassword, userAttr.HashedPassword)
 		if err != nil {
 			c.String(http.StatusInternalServerError, "failed on checkHashedPassword")
 			return
@@ -184,7 +211,7 @@ func setupRouter() *gin.Engine {
 			return
 		}
 
-		if err = setSession(c, formUsername); err != nil {
+		if err = setSession(c, userAttr.UserId); err != nil {
 			c.String(http.StatusInternalServerError, "failed on encoding a cookie")
 			return
 		}
@@ -208,8 +235,8 @@ func setupRouter() *gin.Engine {
 
 	r.MaxMultipartMemory = 8 << 20 // 8 MiB
 	r.POST("/upload", func(c *gin.Context) {
-		username, _ := getSession(c)
-		if username == "" {
+		userId, _ := getSession(c)
+		if userId == "" {
 			c.String(http.StatusForbidden, "unauthorized")
 			return
 		}
@@ -221,7 +248,7 @@ func setupRouter() *gin.Engine {
 			return
 		}
 
-		filename := "data/uploaded/" + username + "/" + filepath.Base(file.Filename)
+		filename := "data/uploaded/" + userId + "/" + filepath.Base(file.Filename)
 		if err := c.SaveUploadedFile(file, filename); err != nil {
 			c.String(http.StatusBadRequest, "upload file err: %s", err.Error())
 			return
@@ -231,13 +258,13 @@ func setupRouter() *gin.Engine {
 	})
 
 	r.GET("/list", func(c *gin.Context) {
-		username, _ := getSession(c)
-		if username == "" {
+		userId, _ := getSession(c)
+		if userId == "" {
 			c.String(http.StatusForbidden, "unauthorized")
 			return
 		}
 
-		entries, err := os.ReadDir("data/uploaded/" + username)
+		entries, err := os.ReadDir("data/uploaded/" + userId)
 		if err != nil {
 			log.Fatal(err)
 		}
