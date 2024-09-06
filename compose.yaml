@@ -15,3 +15,4 @@ services:
     image: mysql:9.0.1-oracle
     environment:
       - MYSQL_ROOT_PASSWORD=mysql
+      - MYSQL_DATABASE=vanxxxserver
