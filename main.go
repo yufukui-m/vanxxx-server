@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -20,6 +21,8 @@ import (
 	"github.com/go-crypt/crypt/algorithm/argon2"
 	"github.com/gorilla/securecookie"
 	"github.com/oklog/ulid/v2"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 const (
