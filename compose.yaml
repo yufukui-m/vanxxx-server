@@ -16,3 +16,7 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=mysql
       - MYSQL_DATABASE=vanxxxserver
+    volumes:
+      - type: bind
+        source: ./docker-entrypoint-initdb.d
+        target: /docker-entrypoint-initdb.d

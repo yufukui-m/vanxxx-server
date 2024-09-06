@@ -1,0 +1,9 @@
+USE vanxxxserver;
+
+DROP TABLE IF EXISTS Users;
+
+CREATE TABLE Users (
+  UserId VARCHAR(28) PRIMARY KEY,
+  Nickname VARCHAR(255) NOT NULL UNIQUE,
+  HashedPassword VARCHAR(255) NOT NULL
+);
