@@ -269,7 +269,9 @@ func setupRouter(db *sql.DB) *gin.Engine {
 			}
 		}
 
-		c.String(http.StatusOK, strings.Join(files, "\n"))
+		c.HTML(http.StatusOK, "list.tmpl", gin.H{
+			"files": files,
+		})
 	})
 
 	r.GET("/image/:user/:filename", func(c *gin.Context) {
