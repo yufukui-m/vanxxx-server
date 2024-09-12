@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -93,37 +92,6 @@ func getUserAttrFromNickname(db *sql.DB, nickname string) (UserAttr, error) {
 		}
 	}
 	return user, nil
-}
-
-// TODO: いらなくなる
-func initUserDB() error {
-	var err error
-	userDB = make([]UserAttr, 0)
-	bytes, err := os.ReadFile(USER_FILE)
-	if os.IsNotExist(err) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	if err = json.Unmarshal(bytes, &userDB); err != nil {
-		return err
-	}
-	return nil
-}
-
-// TODO: いらなくなる
-func saveUserDB() error {
-	var err error
-	jsonBody, err := json.Marshal(userDB)
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile(USER_FILE, jsonBody, 0666)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func generateHashedPassword(password string) (string, error) {
@@ -324,9 +292,6 @@ func main() {
 	defer db.Close()
 
 	initSecureCookie()
-	if err := initUserDB(); err != nil {
-		log.Fatal("failed to load user.json: ", err)
-	}
 
 	r := setupRouter(db)
 
@@ -359,12 +324,6 @@ func main() {
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatal("Server forced to shutdown: ", err)
-	}
-
-	// TODO: いらなくなる
-	log.Println("save user.json")
-	if err := saveUserDB(); err != nil {
-		log.Fatal("failed in saveUserDB: ", err)
 	}
 
 	log.Println("Server exiting")
