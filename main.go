@@ -78,8 +78,6 @@ type UserAttr struct {
 	HashedPassword string
 }
 
-var userDB = []UserAttr{}
-
 func getUserAttrFromNickname(db *sql.DB, nickname string) (UserAttr, error) {
 	var user UserAttr
 	if err := db.QueryRow(
