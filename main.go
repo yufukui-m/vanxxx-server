@@ -5,10 +5,12 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -268,6 +270,29 @@ func setupRouter(db *sql.DB) *gin.Engine {
 		}
 
 		c.String(http.StatusOK, strings.Join(files, "\n"))
+	})
+
+	r.GET("/image/:user/:filename", func(c *gin.Context) {
+		userId := c.Param("user")
+		filename := c.Param("filename")
+
+		switch strings.ToLower(path.Ext(filename)) {
+		case ".jpg", ".jpeg":
+			c.Header("Content-Type", "image/jpeg")
+		case ".png":
+			c.Header("Content-Type", "image/png")
+		default:
+			c.String(http.StatusInternalServerError, fmt.Sprintf("not an image file %s", filename))
+			return
+		}
+
+		file, err := os.ReadFile(fmt.Sprintf("data/uploaded/%s/%s", userId, filename))
+		if err != nil {
+			c.String(http.StatusInternalServerError, fmt.Sprintf("error while reading file %s", file))
+			return
+		}
+
+		_, _ = c.Writer.Write(file)
 	})
 
 	return r
