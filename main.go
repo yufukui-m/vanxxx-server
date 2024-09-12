@@ -151,6 +151,9 @@ func setupRouter(db *sql.DB) *gin.Engine {
 
 	// Ping test
 	r.GET("/ping", func(c *gin.Context) {
+		if err := db.Ping(); err != nil {
+			log.Fatal(err)
+		}
 		c.String(http.StatusOK, "pong")
 	})
 
