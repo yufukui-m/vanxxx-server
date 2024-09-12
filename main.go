@@ -81,14 +81,18 @@ type UserAttr struct {
 
 var userDB = []UserAttr{}
 
-// TODO: ここが書き換わる
-func getUserAttrFromNickname(nickname string) (UserAttr, error) {
-	for _, v := range userDB {
-		if v.Nickname == nickname {
-			return v, nil
+func getUserAttrFromNickname(db *sql.DB, nickname string) (UserAttr, error) {
+	var user UserAttr
+	if err := db.QueryRow(
+		`SELECT UserId, Nickname, HashedPassword FROM Users WHERE Nickname = ?`, nickname,
+	).Scan(&user.UserId, &user.Nickname, &user.HashedPassword); err != nil {
+		if err == sql.ErrNoRows {
+			return UserAttr{}, errors.New("not found")
+		} else {
+			return UserAttr{}, err
 		}
 	}
-	return UserAttr{}, errors.New("not found")
+	return user, nil
 }
 
 // TODO: いらなくなる
@@ -145,6 +149,11 @@ func checkHashedPassword(password string, hashedPassword string) (bool, error) {
 	return crypt.CheckPassword(password, hashedPassword)
 }
 
+func addUser(db *sql.DB, user UserAttr) error {
+	_, err := db.Exec(`INSERT INTO Users (UserId, Nickname, HashedPassword) VALUES (?, ?, ?)`, user.UserId, user.Nickname, user.HashedPassword)
+	return err
+}
+
 func setupRouter(db *sql.DB) *gin.Engine {
 	r := gin.Default()
 	r.LoadHTMLGlob("templates/*")
@@ -174,9 +183,10 @@ func setupRouter(db *sql.DB) *gin.Engine {
 		password := c.PostForm("password")
 
 		// nickname から userAttr を引いてくる
-		_, err = getUserAttrFromNickname(nickname)
+		_, err = getUserAttrFromNickname(db, nickname)
 		if err == nil {
 			c.String(http.StatusForbidden, "user already exists")
+			return
 		}
 
 		hashedPassword, err := generateHashedPassword(password)
@@ -188,12 +198,17 @@ func setupRouter(db *sql.DB) *gin.Engine {
 		// signup の時にユーザid を生成
 		userId := "u-" + ulid.Make().String()
 
-		// ここを書き換える
-		userDB = append(userDB, UserAttr{
-			userId,
-			nickname,
-			hashedPassword,
-		})
+		user := UserAttr{
+			UserId:         userId,
+			Nickname:       nickname,
+			HashedPassword: hashedPassword,
+		}
+		err = addUser(db, user)
+		if err != nil {
+			c.String(http.StatusInternalServerError, "failed on addUser")
+			return
+		}
+
 		c.String(http.StatusOK, nickname)
 	})
 
@@ -205,7 +220,7 @@ func setupRouter(db *sql.DB) *gin.Engine {
 		formPassword := c.PostForm("password")
 
 		var err error
-		userAttr, err := getUserAttrFromNickname(formUsername)
+		userAttr, err := getUserAttrFromNickname(db, formUsername)
 		if err != nil {
 			// ユーザがいない
 			c.String(http.StatusForbidden, "not authorized")
