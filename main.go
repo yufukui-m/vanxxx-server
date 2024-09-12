@@ -81,6 +81,7 @@ type UserAttr struct {
 
 var userDB = []UserAttr{}
 
+// TODO: ここが書き換わる
 func getUserAttrFromNickname(nickname string) (UserAttr, error) {
 	for _, v := range userDB {
 		if v.Nickname == nickname {
@@ -90,6 +91,7 @@ func getUserAttrFromNickname(nickname string) (UserAttr, error) {
 	return UserAttr{}, errors.New("not found")
 }
 
+// TODO: いらなくなる
 func initUserDB() error {
 	var err error
 	userDB = make([]UserAttr, 0)
@@ -106,6 +108,7 @@ func initUserDB() error {
 	return nil
 }
 
+// TODO: いらなくなる
 func saveUserDB() error {
 	var err error
 	jsonBody, err := json.Marshal(userDB)
@@ -182,6 +185,7 @@ func setupRouter() *gin.Engine {
 		// signup の時にユーザid を生成
 		userId := "u-" + ulid.Make().String()
 
+		// ここを書き換える
 		userDB = append(userDB, UserAttr{
 			userId,
 			nickname,
@@ -342,6 +346,7 @@ func main() {
 		log.Fatal("Server forced to shutdown: ", err)
 	}
 
+	// TODO: いらなくなる
 	log.Println("save user.json")
 	if err := saveUserDB(); err != nil {
 		log.Fatal("failed in saveUserDB: ", err)
