@@ -4,6 +4,9 @@ services:
     environment:
       - SESSION_HASH_KEY
       - SESSION_BLOCK_KEY
+      - MYSQL_USER=root
+      - MYSQL_PASS=mysql
+      - MYSQL_ADDR=db:3306
     volumes:
       - type: bind
         source: ./

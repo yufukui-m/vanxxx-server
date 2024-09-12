@@ -22,7 +22,7 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/oklog/ulid/v2"
 
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
 )
 
 const (
@@ -286,6 +286,24 @@ func setupRouter() *gin.Engine {
 }
 
 func main() {
+	cfg := mysql.Config{
+		User:   os.Getenv("MYSQL_USER"),
+		Passwd: os.Getenv("MYSQL_PASS"),
+		Net:    "tcp",
+		Addr:   os.Getenv("MYSQL_ADDR"),
+		DBName: "vanxxxserver",
+	}
+
+	db, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer db.Close()
+
+	// just testing
+	return
+
 	initSecureCookie()
 	if err := initUserDB(); err != nil {
 		log.Fatal("failed to load user.json: ", err)
