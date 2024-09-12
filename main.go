@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -22,7 +21,7 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/oklog/ulid/v2"
 
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
 )
 
 const (
@@ -81,42 +80,18 @@ type UserAttr struct {
 
 var userDB = []UserAttr{}
 
-func getUserAttrFromNickname(nickname string) (UserAttr, error) {
-	for _, v := range userDB {
-		if v.Nickname == nickname {
-			return v, nil
+func getUserAttrFromNickname(db *sql.DB, nickname string) (UserAttr, error) {
+	var user UserAttr
+	if err := db.QueryRow(
+		`SELECT UserId, Nickname, HashedPassword FROM Users WHERE Nickname = ?`, nickname,
+	).Scan(&user.UserId, &user.Nickname, &user.HashedPassword); err != nil {
+		if err == sql.ErrNoRows {
+			return UserAttr{}, errors.New("not found")
+		} else {
+			return UserAttr{}, err
 		}
 	}
-	return UserAttr{}, errors.New("not found")
-}
-
-func initUserDB() error {
-	var err error
-	userDB = make([]UserAttr, 0)
-	bytes, err := os.ReadFile(USER_FILE)
-	if os.IsNotExist(err) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	if err = json.Unmarshal(bytes, &userDB); err != nil {
-		return err
-	}
-	return nil
-}
-
-func saveUserDB() error {
-	var err error
-	jsonBody, err := json.Marshal(userDB)
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile(USER_FILE, jsonBody, 0666)
-	if err != nil {
-		return err
-	}
-	return nil
+	return user, nil
 }
 
 func generateHashedPassword(password string) (string, error) {
@@ -142,12 +117,20 @@ func checkHashedPassword(password string, hashedPassword string) (bool, error) {
 	return crypt.CheckPassword(password, hashedPassword)
 }
 
-func setupRouter() *gin.Engine {
+func addUser(db *sql.DB, user UserAttr) error {
+	_, err := db.Exec(`INSERT INTO Users (UserId, Nickname, HashedPassword) VALUES (?, ?, ?)`, user.UserId, user.Nickname, user.HashedPassword)
+	return err
+}
+
+func setupRouter(db *sql.DB) *gin.Engine {
 	r := gin.Default()
 	r.LoadHTMLGlob("templates/*")
 
 	// Ping test
 	r.GET("/ping", func(c *gin.Context) {
+		if err := db.Ping(); err != nil {
+			log.Fatal(err)
+		}
 		c.String(http.StatusOK, "pong")
 	})
 
@@ -168,9 +151,10 @@ func setupRouter() *gin.Engine {
 		password := c.PostForm("password")
 
 		// nickname から userAttr を引いてくる
-		_, err = getUserAttrFromNickname(nickname)
+		_, err = getUserAttrFromNickname(db, nickname)
 		if err == nil {
 			c.String(http.StatusForbidden, "user already exists")
+			return
 		}
 
 		hashedPassword, err := generateHashedPassword(password)
@@ -182,11 +166,17 @@ func setupRouter() *gin.Engine {
 		// signup の時にユーザid を生成
 		userId := "u-" + ulid.Make().String()
 
-		userDB = append(userDB, UserAttr{
-			userId,
-			nickname,
-			hashedPassword,
-		})
+		user := UserAttr{
+			UserId:         userId,
+			Nickname:       nickname,
+			HashedPassword: hashedPassword,
+		}
+		err = addUser(db, user)
+		if err != nil {
+			c.String(http.StatusInternalServerError, "failed on addUser")
+			return
+		}
+
 		c.String(http.StatusOK, nickname)
 	})
 
@@ -198,7 +188,7 @@ func setupRouter() *gin.Engine {
 		formPassword := c.PostForm("password")
 
 		var err error
-		userAttr, err := getUserAttrFromNickname(formUsername)
+		userAttr, err := getUserAttrFromNickname(db, formUsername)
 		if err != nil {
 			// ユーザがいない
 			c.String(http.StatusForbidden, "not authorized")
@@ -286,12 +276,24 @@ func setupRouter() *gin.Engine {
 }
 
 func main() {
-	initSecureCookie()
-	if err := initUserDB(); err != nil {
-		log.Fatal("failed to load user.json: ", err)
+	cfg := mysql.Config{
+		User:   os.Getenv("MYSQL_USER"),
+		Passwd: os.Getenv("MYSQL_PASS"),
+		Net:    "tcp",
+		Addr:   os.Getenv("MYSQL_ADDR"),
+		DBName: "vanxxxserver",
 	}
 
-	r := setupRouter()
+	db, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer db.Close()
+
+	initSecureCookie()
+
+	r := setupRouter(db)
 
 	srv := &http.Server{
 		Addr:    ":8080",
@@ -322,11 +324,6 @@ func main() {
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatal("Server forced to shutdown: ", err)
-	}
-
-	log.Println("save user.json")
-	if err := saveUserDB(); err != nil {
-		log.Fatal("failed in saveUserDB: ", err)
 	}
 
 	log.Println("Server exiting")
