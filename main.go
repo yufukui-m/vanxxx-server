@@ -145,7 +145,7 @@ func checkHashedPassword(password string, hashedPassword string) (bool, error) {
 	return crypt.CheckPassword(password, hashedPassword)
 }
 
-func setupRouter() *gin.Engine {
+func setupRouter(db *sql.DB) *gin.Engine {
 	r := gin.Default()
 	r.LoadHTMLGlob("templates/*")
 
@@ -305,15 +305,12 @@ func main() {
 
 	defer db.Close()
 
-	// just testing
-	return
-
 	initSecureCookie()
 	if err := initUserDB(); err != nil {
 		log.Fatal("failed to load user.json: ", err)
 	}
 
-	r := setupRouter()
+	r := setupRouter(db)
 
 	srv := &http.Server{
 		Addr:    ":8080",
