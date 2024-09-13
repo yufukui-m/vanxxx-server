@@ -8,5 +8,10 @@
 {{ range $i, $v := .exif }}
   <li>{{ $v }}</li>
 {{end}}
+</ul>
 
+<ul>
+{{ range $i, $v := .exif }}
+<li><a href="https://maps.google.com/maps?q={{ $v.Lat }},{{ $v.Long }}">map</a></li>
+{{end}}
 </ul>
