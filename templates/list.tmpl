@@ -1,5 +1,12 @@
 <ul>
-{{range .files}}
-  <li><img src="{{ . }}" width="50%" /></li>
+{{range $i, $v := .files}}
+  <li><img src="{{ $v }}" width="50%" />
+  </li>
 {{end}}
+</ul>
+<ul>
+{{ range $i, $v := .exif }}
+  <li>{{ $v }}</li>
+{{end}}
+
 </ul>

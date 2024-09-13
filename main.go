@@ -81,6 +81,13 @@ type UserAttr struct {
 	HashedPassword string
 }
 
+type ExifSummary struct {
+	CameraModel string
+	DateTime    time.Time
+	Lat         float64
+	Long        float64
+}
+
 func getUserAttrFromNickname(db *sql.DB, nickname string) (UserAttr, error) {
 	var user UserAttr
 	if err := db.QueryRow(
@@ -264,6 +271,7 @@ func setupRouter(db *sql.DB) *gin.Engine {
 		}
 
 		var files = []string{}
+		var exifSummaries = []ExifSummary{}
 		for _, e := range entries {
 			if e.Type().IsRegular() {
 				files = append(files, fmt.Sprintf("/image/%s/%s", userId, e.Name()))
@@ -272,6 +280,9 @@ func setupRouter(db *sql.DB) *gin.Engine {
 				if err != nil {
 					log.Fatal(err)
 				}
+
+				var summary ExifSummary
+
 				x, err := exif.Decode(imageFile)
 				if err != nil {
 					log.Fatal(err)
@@ -279,18 +290,26 @@ func setupRouter(db *sql.DB) *gin.Engine {
 
 				camModel, _ := x.Get(exif.Model) // normally, don't ignore errors!
 				fmt.Println(camModel.StringVal())
+				summary.CameraModel, _ = camModel.StringVal()
 
 				// Two convenience functions exist for date/time taken and GPS coords:
 				tm, _ := x.DateTime()
 				fmt.Println("Taken: ", tm)
+				summary.DateTime = tm
 
 				lat, long, _ := x.LatLong()
 				fmt.Println("lat, long: ", lat, ", ", long)
+				summary.Lat = lat
+				summary.Long = long
+
+				exifSummaries = append(exifSummaries, summary)
+
 			}
 		}
 
 		c.HTML(http.StatusOK, "list.tmpl", gin.H{
 			"files": files,
+			"exif":  exifSummaries,
 		})
 	})
 
