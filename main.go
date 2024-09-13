@@ -22,6 +22,7 @@ import (
 	"github.com/go-crypt/crypt/algorithm/argon2"
 	"github.com/gorilla/securecookie"
 	"github.com/oklog/ulid/v2"
+	"github.com/rwcarlsen/goexif/exif"
 
 	"github.com/go-sql-driver/mysql"
 )
@@ -266,6 +267,25 @@ func setupRouter(db *sql.DB) *gin.Engine {
 		for _, e := range entries {
 			if e.Type().IsRegular() {
 				files = append(files, fmt.Sprintf("/image/%s/%s", userId, e.Name()))
+
+				imageFile, err := os.Open("data/uploaded/" + userId + "/" + e.Name())
+				if err != nil {
+					log.Fatal(err)
+				}
+				x, err := exif.Decode(imageFile)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				camModel, _ := x.Get(exif.Model) // normally, don't ignore errors!
+				fmt.Println(camModel.StringVal())
+
+				// Two convenience functions exist for date/time taken and GPS coords:
+				tm, _ := x.DateTime()
+				fmt.Println("Taken: ", tm)
+
+				lat, long, _ := x.LatLong()
+				fmt.Println("lat, long: ", lat, ", ", long)
 			}
 		}
 
