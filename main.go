@@ -265,7 +265,7 @@ func setupRouter(db *sql.DB) *gin.Engine {
 		var files = []string{}
 		for _, e := range entries {
 			if e.Type().IsRegular() {
-				files = append(files, e.Name())
+				files = append(files, fmt.Sprintf("/image/%s/%s", userId, e.Name()))
 			}
 		}
 
