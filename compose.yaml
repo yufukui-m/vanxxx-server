@@ -14,6 +14,15 @@ services:
     command: /bin/sh -c "go install github.com/air-verse/air@latest && air --build.cmd 'go build -o ./bin/server' --build.bin ./bin/server --build.send_interrupt true --build.kill_delay 9000"
     ports:
       - "8080:8080"
+  front:
+    image: cimg/node:22.9.0
+    command: /bin/sh
+    volumes:
+      - type: bind
+        source: ./front
+        target: /home/circleci/project
+    ports:
+      - "3000:3000"
   db:
     image: mysql:9.0.1-oracle
     environment:
