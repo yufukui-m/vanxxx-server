@@ -16,7 +16,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+
 	"github.com/go-crypt/crypt"
 	"github.com/go-crypt/crypt/algorithm"
 	"github.com/go-crypt/crypt/algorithm/argon2"
@@ -134,6 +136,11 @@ func setupRouter(db *sql.DB) *gin.Engine {
 	r := gin.Default()
 	r.LoadHTMLGlob("templates/*")
 
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowOrigins = []string{"http://localhost:3000"}
+	corsConfig.AllowCredentials = true
+	r.Use(cors.New(corsConfig))
+
 	// Ping test
 	r.GET("/ping", func(c *gin.Context) {
 		if err := db.Ping(); err != nil {
@@ -203,6 +210,44 @@ func setupRouter(db *sql.DB) *gin.Engine {
 		}
 
 		checkResult, err := checkHashedPassword(formPassword, userAttr.HashedPassword)
+		if err != nil {
+			c.String(http.StatusInternalServerError, "failed on checkHashedPassword")
+			return
+		}
+		if !checkResult {
+			c.String(http.StatusForbidden, "not authorized")
+			return
+		}
+
+		if err = setSession(c, userAttr.UserId); err != nil {
+			c.String(http.StatusInternalServerError, "failed on encoding a cookie")
+			return
+		}
+
+		c.String(http.StatusOK, "authorized")
+	})
+
+	r.POST("/api/auth/login", func(c *gin.Context) {
+		type LoginParam struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		}
+
+		var param LoginParam
+
+		if err := c.ShouldBindJSON(&param); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		var err error
+		userAttr, err := getUserAttrFromNickname(db, param.Username)
+		if err != nil {
+			// ユーザがいない
+			c.String(http.StatusForbidden, "not authorized")
+		}
+
+		checkResult, err := checkHashedPassword(param.Password, userAttr.HashedPassword)
 		if err != nil {
 			c.String(http.StatusInternalServerError, "failed on checkHashedPassword")
 			return
