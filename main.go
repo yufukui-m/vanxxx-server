@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -9,6 +12,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -16,6 +22,106 @@ import (
 const (
 	SESSION_COOKIE_NAME = "session"
 )
+
+type Request struct {
+	AnthropicVersion string    `json:"anthropic_version"`
+	MaxTokens        int       `json:"max_tokens"`
+	System           string    `json:"system"`
+	Messages         []Message `json:"messages"`
+}
+
+type Message struct {
+	Role    string    `json:"role"`
+	Content []Content `json:"content"`
+}
+
+type Content struct {
+	Type   string  `json:"type"`
+	Text   string  `json:"text,omitempty"`
+	Source *Source `json:"source,omitempty"`
+}
+
+type Source struct {
+	Type      string `json:"type"`
+	MediaType string `json:"media_type"`
+	Data      string `json:"data"`
+}
+
+type Response struct {
+	ID           string        `json:"id"`
+	Model        string        `json:"model"`
+	Type         string        `json:"type"`
+	Role         string        `json:"role"`
+	ContentItem  []ContentItem `json:"content"`
+	StopReason   string        `json:"stop_reason,omitempty"`
+	StopSequence string        `json:"stop_sequence,omitempty"`
+	Usage        UsageDetails  `json:"usage"`
+}
+
+type ContentItem struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+type UsageDetails struct {
+	InputTokens  int `json:"input_tokens"`
+	OutputTokens int `json:"output_tokens"`
+}
+
+func isItShibuya(base64Image string) (string, error) {
+	SYSTEM_PROMPT := "この画像の渋谷っぽいところを教えてください。回答の最後に渋谷である確率をパーセントで教えてください。回答は日本語でお願いします。"
+
+	cfg, err := config.LoadDefaultConfig(context.Background())
+	if err != nil {
+		return "", err
+	}
+
+	bedrock := bedrockruntime.NewFromConfig(cfg)
+
+	contentImage := Content{
+		Type: "image",
+		Source: &Source{
+			Type:      "base64",
+			MediaType: "image/jpeg",
+			Data:      base64Image,
+		},
+	}
+
+	message := Message{
+		Role:    "user",
+		Content: []Content{contentImage},
+	}
+
+	payload := Request{
+		AnthropicVersion: "bedrock-2023-05-31", // TODO
+		MaxTokens:        1024,
+		System:           SYSTEM_PROMPT,
+		Messages:         []Message{message},
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+
+	output, err := bedrock.InvokeModel(context.Background(), &bedrockruntime.InvokeModelInput{
+		Body:        payloadBytes,
+		ModelId:     aws.String("anthropic.claude-3-haiku-20240307-v1:0"),
+		ContentType: aws.String("application/json"),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	var resp Response
+
+	err = json.Unmarshal(output.Body, &resp)
+	if err != nil {
+		return "", err
+	}
+
+	return resp.ContentItem[len(resp.ContentItem)-1].Text, nil
+}
 
 func setupRouter() *gin.Engine {
 	r := gin.Default()
@@ -33,6 +139,37 @@ func setupRouter() *gin.Engine {
 
 	r.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "hello")
+	})
+
+	r.POST("/api/uploadImage", func(c *gin.Context) {
+		imageBlob, _, err := c.Request.FormFile("image")
+		if err != nil {
+			c.JSON(400, gin.H{
+				"message": "Bad Request",
+			})
+			return
+		}
+		/*
+			var buff bytes.Buffer
+			b64encoder := base64.NewEncoder(base64.StdEncoding, buff)
+			b64encoder.Write(imageBlob.)
+			b64encoder.Close()*/
+
+		var buff bytes.Buffer
+		buff.ReadFrom(imageBlob)
+		b64string := base64.StdEncoding.EncodeToString(buff.Bytes())
+
+		result, err := isItShibuya(b64string)
+		if err != nil {
+			c.JSON(500, gin.H{
+				"message": err.Error(),
+			})
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"message": result,
+		})
 	})
 
 	return r

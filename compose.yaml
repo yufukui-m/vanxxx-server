@@ -2,11 +2,9 @@ services:
   app:
     image: cimg/go:1.22
     environment:
-      - SESSION_HASH_KEY
-      - SESSION_BLOCK_KEY
-      - MYSQL_USER=root
-      - MYSQL_PASS=mysql
-      - MYSQL_ADDR=db:3306
+      - AWS_DEFAULT_REGION
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
     volumes:
       - type: bind
         source: ./
