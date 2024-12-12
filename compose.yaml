@@ -23,14 +23,3 @@ services:
         target: /home/circleci/project
     ports:
       - "3000:3000"
-  db:
-    image: mysql:9.0.1-oracle
-    environment:
-      - MYSQL_ROOT_PASSWORD=mysql
-      - MYSQL_DATABASE=vanxxxserver
-    volumes:
-      - type: bind
-        source: ./docker-entrypoint-initdb.d
-        target: /docker-entrypoint-initdb.d
-    expose:
-      - "3306:3306"
