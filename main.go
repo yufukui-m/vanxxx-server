@@ -128,7 +128,7 @@ func setupRouter() *gin.Engine {
 	r.LoadHTMLGlob("templates/*")
 
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{"http://localhost:3000"}
+	corsConfig.AllowOrigins = []string{os.Getenv("CORS_ALLOW_ORIGIN")}
 	corsConfig.AllowCredentials = true
 	r.Use(cors.New(corsConfig))
 
