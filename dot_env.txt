@@ -1,3 +1,6 @@
 # example of .env
-SESSION_HASH_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-SESSION_BLOCK_KEY="AAAAAAAAAAAAAAAAAAAAAA=="
+CORS_ALLOW_ORIGIN=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:8080
+AWS_ACCESS_KEY_ID=AKIAxxxxxxxx
+AWS_SECRET_ACCESS_KEY=xxxxxxxx
+AWS_DEFAULT_REGION=us-west-2
