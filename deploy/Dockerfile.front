@@ -1,0 +1,8 @@
+FROM cimg/node:23.4.0
+
+COPY --chown=circleci:circleci ./front /home/circleci/project
+RUN npm install
+
+CMD ["npm", "run", "dev"]
+EXPOSE 3000
+
